@@ -93,6 +93,12 @@
       padding: 0;
     }
 
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       font-family: var(--font-sans);
       background-color: var(--bg-app);
@@ -268,6 +274,8 @@
       display: flex;
       overflow: hidden;
       position: relative;
+      min-height: 0;
+      min-width: 0;
     }
 
     /* ==========================================================================
@@ -285,6 +293,7 @@
       z-index: 15;
       padding: 16px;
       gap: 16px;
+      flex-shrink: 0;
       transition: transform 0.25s ease;
     }
 
@@ -537,8 +546,11 @@
       display: flex;
       flex-direction: column;
       height: 100%;
+      min-height: 0;
+      min-width: 0;
       overflow: hidden;
       background: var(--bg-app);
+      position: relative;
     }
 
     .chat-messages {
@@ -548,6 +560,8 @@
       display: flex;
       flex-direction: column;
       gap: 20px;
+      min-height: 0;
+      min-width: 0;
     }
 
     .empty-state {
@@ -833,6 +847,8 @@
       border-top: 1px solid var(--border-color);
       padding: 14px 20px;
       z-index: 10;
+      flex-shrink: 0;
+      position: relative;
     }
 
     .input-box-wrapper {
@@ -847,10 +863,10 @@
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
-      padding: 8px 12px;
+      padding: 8px 14px;
       display: flex;
       align-items: flex-end;
-      gap: 8px;
+      gap: 10px;
       box-shadow: var(--shadow-sm);
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
@@ -869,8 +885,9 @@
       color: var(--text-main);
       resize: none;
       max-height: 180px;
-      min-height: 24px;
-      height: 24px;
+      min-height: 44px;
+      height: 44px;
+      padding: 10px 0;
     }
 
     .chat-input-buttons {
@@ -1135,6 +1152,7 @@
           </button>
         </div>
         <div class="sidebar-card">
+          <input type="text" id="modelSearchInput" class="text-input" placeholder="🔍 Search models..." style="font-size: 12px; padding: 6px 9px; margin-bottom: 4px;" autocomplete="off" />
           <select id="modelSelect" class="select-input"></select>
           <div class="model-info-tag">
             <span>Context Max Tokens:</span>
@@ -1590,11 +1608,26 @@
       return state.availableModels.find(m => m.id === state.selectedModelId) || state.availableModels[0];
     }
 
-    function populateModelDropdown() {
+    function populateModelDropdown(filterTerm = '') {
       const select = document.getElementById('modelSelect');
+      const term = (filterTerm || '').trim().toLowerCase();
       select.innerHTML = '';
 
-      state.availableModels.forEach(model => {
+      const filtered = state.availableModels.filter(m => {
+        if (!term) return true;
+        return m.id.toLowerCase().includes(term) || (m.name && m.name.toLowerCase().includes(term));
+      });
+
+      if (filtered.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'No matching models';
+        opt.disabled = true;
+        select.appendChild(opt);
+        return;
+      }
+
+      filtered.forEach(model => {
         const opt = document.createElement('option');
         opt.value = model.id;
         opt.textContent = `${model.name || model.id} (${model.maxTokens ? model.maxTokens.toLocaleString() : 'unknown'} max)`;
@@ -1603,6 +1636,10 @@
         }
         select.appendChild(opt);
       });
+
+      if (!filtered.some(m => m.id === state.selectedModelId)) {
+        state.selectedModelId = filtered[0].id;
+      }
 
       updateModelInfo();
     }
@@ -1922,7 +1959,7 @@
       });
 
       input.value = '';
-      input.style.height = '24px';
+      input.style.height = '44px';
       saveStateToStorage();
       renderMessages();
 
@@ -2218,6 +2255,14 @@
         showToast(`Switched model to ${state.selectedModelId}`, 'info');
       });
 
+      // Model search input filter
+      const modelSearchInput = document.getElementById('modelSearchInput');
+      if (modelSearchInput) {
+        modelSearchInput.addEventListener('input', (e) => {
+          populateModelDropdown(e.target.value);
+        });
+      }
+
       // Refresh models button
       document.getElementById('refreshModelsBtn').addEventListener('click', fetchModelsFromGroq);
 
@@ -2390,8 +2435,8 @@
       // Chat input textarea auto-resize & key bindings
       const chatInput = document.getElementById('chatInput');
       chatInput.addEventListener('input', () => {
-        chatInput.style.height = '24px';
-        chatInput.style.height = Math.min(180, chatInput.scrollHeight) + 'px';
+        chatInput.style.height = '44px';
+        chatInput.style.height = Math.max(44, Math.min(180, chatInput.scrollHeight)) + 'px';
       });
 
       chatInput.addEventListener('keydown', (e) => {
