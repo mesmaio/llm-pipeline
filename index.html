@@ -1129,17 +1129,23 @@
       <!-- API Key Section -->
       <section class="sidebar-section">
         <div class="section-label">
-          <span>Groq API Key</span>
-          <button id="clearKeyBtn" class="btn-danger" style="font-size: 11px; padding: 2px 4px;" title="Remove saved API key">Clear</button>
+          <span>API Key</span>
+          <span style="font-size: 10px; color: var(--color-success); font-weight: 600;">● Backend Active</span>
         </div>
         <div class="sidebar-card">
-          <div class="input-row">
-            <input type="password" id="apiKeyInput" class="text-input" placeholder="gsk_..." autocomplete="off" spellcheck="false" />
-            <button id="toggleKeyVisibilityBtn" class="btn-secondary" style="padding: 6px 10px;" title="Show/Hide key">👁️</button>
-          </div>
           <p class="key-security-note">
-            Your key is stored only in this browser and sent only to api.groq.com.
+            Groq API key is securely backended on the server. You can select any model and chat instantly.
           </p>
+          <details style="font-size: 11px; color: var(--text-muted); cursor: pointer; margin-top: 4px;">
+            <summary style="outline: none; user-select: none;">Custom Key Override (optional)</summary>
+            <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+              <div class="input-row">
+                <input type="password" id="apiKeyInput" class="text-input" placeholder="gsk_... (override backend)" autocomplete="off" spellcheck="false" />
+                <button id="toggleKeyVisibilityBtn" class="btn-secondary" style="padding: 6px 10px;" title="Show/Hide key">👁️</button>
+              </div>
+              <button id="clearKeyBtn" class="btn-danger" style="font-size: 11px; padding: 2px 4px; align-self: flex-start;" title="Clear custom key">Clear Custom Key</button>
+            </div>
+          </details>
         </div>
       </section>
 
@@ -1368,8 +1374,9 @@
       systemPrompt: ''
     };
 
-    const API_CHAT_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-    const API_MODELS_ENDPOINT = 'https://api.groq.com/openai/v1/models';
+    const IS_LOCAL_FILE = window.location.protocol === 'file:';
+    const API_CHAT_ENDPOINT = IS_LOCAL_FILE ? 'https://api.groq.com/openai/v1/chat/completions' : '/api/chat';
+    const API_MODELS_ENDPOINT = IS_LOCAL_FILE ? 'https://api.groq.com/openai/v1/models' : '/api/models';
 
     /* ==========================================================================
        2. APPLICATION STATE
@@ -1584,15 +1591,12 @@
 
     function updateSendButtonState() {
       const sendBtn = document.getElementById('sendBtn');
-      const hasKey = !!state.apiKey.trim();
       const hasModel = !!state.selectedModelId;
-      const isBlocked = state.isGenerating || !hasKey || !hasModel;
+      const isBlocked = state.isGenerating || !hasModel;
       
       sendBtn.disabled = isBlocked;
 
-      if (!hasKey) {
-        sendBtn.title = 'Enter your Groq API key in the sidebar to send messages';
-      } else if (!hasModel) {
+      if (!hasModel) {
         sendBtn.title = 'Select a model to send messages';
       } else if (state.isGenerating) {
         sendBtn.title = 'Generation in progress...';
@@ -1674,8 +1678,8 @@
     }
 
     async function fetchModelsFromGroq() {
-      if (!state.apiKey) {
-        showToast('Please enter your Groq API key first.', 'warning');
+      if (IS_LOCAL_FILE && !state.apiKey) {
+        showToast('Running locally via file://. Please enter an API key to refresh models.', 'warning');
         return;
       }
 
@@ -1685,16 +1689,29 @@
       refreshBtn.innerHTML = 'Fetching...';
 
       try {
+        const headers = {};
+        if (state.apiKey && state.apiKey.trim()) {
+          headers['Authorization'] = `Bearer ${state.apiKey.trim()}`;
+        }
+
         const response = await fetch(API_MODELS_ENDPOINT, {
           method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${state.apiKey.trim()}`
-          }
+          headers: headers
         });
 
         if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.error?.message || `Failed to fetch models (${response.status})`);
+          let errMsg = `Failed to fetch models (${response.status})`;
+          try {
+            const raw = await response.text();
+            try {
+              const parsed = JSON.parse(raw);
+              if (parsed.error?.message) errMsg = parsed.error.message;
+              else if (raw) errMsg = raw;
+            } catch (pe) {
+              if (raw) errMsg = raw;
+            }
+          } catch (_) {}
+          throw new Error(errMsg);
         }
 
         const data = await response.json();
@@ -1926,6 +1943,7 @@
         model: state.selectedModelId,
         messages: payloadMessages.length > 0 ? payloadMessages : [{ role: 'user', content: 'Hello!' }],
         temperature: state.temperature,
+        max_tokens: state.maxTokens,
         max_completion_tokens: state.maxTokens,
         stream: state.streaming
       };
@@ -1943,9 +1961,8 @@
 
       if (!text || state.isGenerating) return;
 
-      if (!state.apiKey) {
-        showToast('Please enter your Groq API key in the sidebar.', 'warning');
-        document.getElementById('apiKeyInput').focus();
+      if (IS_LOCAL_FILE && !state.apiKey) {
+        showToast('Running locally via file:// without backend. Please enter your Groq API key in the sidebar.', 'warning');
         return;
       }
 
@@ -2023,12 +2040,16 @@
       let usageData = null;
 
       try {
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        if (state.apiKey && state.apiKey.trim()) {
+          headers['Authorization'] = `Bearer ${state.apiKey.trim()}`;
+        }
+
         const response = await fetch(API_CHAT_ENDPOINT, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${state.apiKey.trim()}`
-          },
+          headers: headers,
           body: JSON.stringify(requestPayload),
           signal: state.abortController.signal
         });
@@ -2036,12 +2057,21 @@
         if (!response.ok) {
           let errorMsg = `HTTP Error ${response.status}`;
           try {
-            const errJson = await response.json();
-            if (errJson.error && errJson.error.message) {
-              errorMsg = errJson.error.message;
+            const rawText = await response.text();
+            try {
+              const errJson = JSON.parse(rawText);
+              if (errJson.error && errJson.error.message) {
+                errorMsg = errJson.error.message;
+              } else if (typeof errJson === 'string') {
+                errorMsg = errJson;
+              }
+            } catch (jsonErr) {
+              if (rawText && rawText.trim()) {
+                errorMsg = rawText.trim();
+              }
             }
-          } catch (e) {
-            errorMsg = await response.text();
+          } catch (readErr) {
+            errorMsg = `HTTP Error ${response.status}: ${readErr.message}`;
           }
 
           if (response.status === 401) {
@@ -2412,8 +2442,7 @@
         const payload = buildCurrentPayload();
         const jsonStr = JSON.stringify(payload, null, 2);
 
-        const curlCmd = `curl -X POST "${API_CHAT_ENDPOINT}" \\
-  -H "Authorization: Bearer $GROQ_API_KEY" \\
+        const curlCmd = `curl -X POST "${IS_LOCAL_FILE ? 'https://api.groq.com/openai/v1/chat/completions' : window.location.origin + '/api/chat'}" \\
   -H "Content-Type: application/json" \\
   -d '${JSON.stringify(payload)}'`;
 
