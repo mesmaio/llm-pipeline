@@ -1085,7 +1085,7 @@
 
   <!-- ==========================================================================
        App Header
-       ========================================================================== */
+       ========================================================================== -->
   <header class="app-header">
     <div class="brand-section">
       <button id="menuToggleBtn" class="menu-toggle-btn" aria-label="Toggle settings sidebar">☰</button>
@@ -1119,7 +1119,7 @@
 
   <!-- ==========================================================================
        App Main Area (Sidebar + Chat)
-       ========================================================================== */
+       ========================================================================== -->
   <main class="app-main">
     <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
 
@@ -2350,15 +2350,19 @@
       function applyTheme(theme) {
         state.theme = theme;
         document.documentElement.setAttribute('data-theme', theme);
-        themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+        if (themeIcon) {
+          themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+        }
         saveStateToStorage();
       }
       applyTheme(state.theme);
 
-      themeToggleBtn.addEventListener('click', () => {
-        const nextTheme = state.theme === 'dark' ? 'light' : 'dark';
-        applyTheme(nextTheme);
-      });
+      if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+          const nextTheme = state.theme === 'dark' ? 'light' : 'dark';
+          applyTheme(nextTheme);
+        });
+      }
 
       // New Chat button
       document.getElementById('newChatBtn').addEventListener('click', () => {
