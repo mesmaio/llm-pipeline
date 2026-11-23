@@ -896,6 +896,139 @@
       gap: 6px;
     }
 
+    .web-search-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-full);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .web-search-pill:hover {
+      background: var(--bg-hover);
+      color: var(--text-main);
+      border-color: var(--text-dim);
+    }
+    .web-search-pill.active {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #10b981;
+    }
+    .web-search-pill.active .web-icon {
+      filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.6));
+    }
+
+    /* Sources citation strip */
+    .sources-strip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .sources-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .source-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      color: var(--text-muted);
+      max-width: 240px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+    .source-chip:hover {
+      border-color: var(--accent);
+      color: var(--text-main);
+      text-decoration: none;
+    }
+    .source-num {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      background: var(--accent-alpha);
+      color: var(--accent);
+      border-radius: var(--radius-full);
+      width: 15px;
+      height: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .source-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Reasoning Process Box */
+    .reasoning-box {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      font-size: 12px;
+    }
+    .reasoning-summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text-muted);
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .reasoning-summary:hover {
+      color: var(--accent);
+    }
+    .reasoning-content {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      white-space: pre-wrap;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.5;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    /* Web Search Live Progress */
+    .search-progress {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #10b981;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
     .input-footer {
       display: flex;
       justify-content: space-between;
@@ -1210,6 +1343,15 @@
             </label>
           </div>
 
+          <!-- Web Search Switch -->
+          <div class="toggle-row">
+            <span class="control-name" style="font-size: 12px; color: var(--text-muted);">🌐 Search Web (live updates)</span>
+            <label class="switch">
+              <input type="checkbox" id="sidebarWebSearchToggle">
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+
         </div>
       </section>
 
@@ -1302,6 +1444,10 @@
             <textarea id="chatInput" class="chat-textarea" placeholder="Send a message... (Enter to send, Shift+Enter for newline)" rows="1"></textarea>
             
             <div class="chat-input-buttons">
+              <button id="webSearchToggleBtn" class="web-search-pill" type="button" title="Toggle real-time web search for latest live updates">
+                <span class="web-icon">🌐</span>
+                <span>Search web</span>
+              </button>
               <button id="stopBtn" class="btn-secondary btn-danger" style="display: none;" title="Stop generation">
                 ■ Stop
               </button>
@@ -1357,15 +1503,12 @@
     /* ==========================================================================
        1. CONFIGURATION & BUILT-IN MODELS
        ========================================================================== */
-    // The built-in chat models preloaded immediately without fetching
+    // The active chat models verified and provisioned on this Groq account
     const BUILTIN_MODELS = [
       { id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B (OpenAI)', maxTokens: 8192 },
       { id: 'openai/gpt-oss-20b', name: 'GPT OSS 20B (OpenAI)', maxTokens: 8192 },
       { id: 'qwen/qwen3.8-27b', name: 'Qwen 3.8 27B', maxTokens: 8192 },
-      { id: 'allam-2-7b', name: 'Allam 2 7B', maxTokens: 4096 },
-      { id: 'canopylabs/orpheus-v1-english', name: 'Orpheus v1 English', maxTokens: 4000 },
-      { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B Versatile', maxTokens: 32768 },
-      { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B Instant', maxTokens: 8192 }
+      { id: 'allam-2-7b', name: 'Allam 2 7B', maxTokens: 4096 }
     ];
 
     const DEFAULT_CONFIG = {
@@ -1391,8 +1534,9 @@
       maxTokens: DEFAULT_CONFIG.maxTokens,
       streaming: DEFAULT_CONFIG.streaming,
       systemPrompt: DEFAULT_CONFIG.systemPrompt,
+      webSearchEnabled: false,
       theme: 'dark',
-      messages: [], // Array of { id, role, content, model, stats: { time, ttft, speed, promptTokens, completionTokens, totalTokens, finishReason } }
+      messages: [], // Array of { id, role, content, model, sources, reasoning, stats: { time, ttft, speed, promptTokens, completionTokens, totalTokens, finishReason } }
       isGenerating: false,
       abortController: null,
       sessionStats: {
@@ -1413,6 +1557,7 @@
       MAX_TOKENS: 'groq_playground_max_tokens',
       STREAMING: 'groq_playground_streaming',
       SYSTEM_PROMPT: 'groq_playground_system_prompt',
+      WEB_SEARCH: 'groq_playground_web_search',
       THEME: 'groq_playground_theme',
       MESSAGES: 'groq_playground_messages',
       SESSION_STATS: 'groq_playground_session_stats'
@@ -1424,6 +1569,7 @@
         if (storedKey) state.apiKey = storedKey;
 
         const storedModel = localStorage.getItem(STORAGE_KEYS.MODEL);
+        // Only load if the stored model is valid in current availableModels
         if (storedModel && state.availableModels.some(m => m.id === storedModel)) {
           state.selectedModelId = storedModel;
         } else {
@@ -1442,6 +1588,9 @@
         const storedSystemPrompt = localStorage.getItem(STORAGE_KEYS.SYSTEM_PROMPT);
         if (storedSystemPrompt !== null) state.systemPrompt = storedSystemPrompt;
 
+        const storedWebSearch = localStorage.getItem(STORAGE_KEYS.WEB_SEARCH);
+        if (storedWebSearch !== null) state.webSearchEnabled = storedWebSearch === 'true';
+
         const storedTheme = localStorage.getItem(STORAGE_KEYS.THEME);
         if (storedTheme) {
           state.theme = storedTheme;
@@ -1452,7 +1601,11 @@
         const storedMessages = localStorage.getItem(STORAGE_KEYS.MESSAGES);
         if (storedMessages) {
           try {
-            state.messages = JSON.parse(storedMessages);
+            const raw = JSON.parse(storedMessages);
+            if (Array.isArray(raw)) {
+              // Automatically prune empty or corrupted messages from previous sessions
+              state.messages = raw.filter(m => m && m.content && m.content.trim().length > 0);
+            }
           } catch (e) {
             console.error('Failed to parse stored messages', e);
           }
@@ -1481,11 +1634,24 @@
         localStorage.setItem(STORAGE_KEYS.MAX_TOKENS, state.maxTokens.toString());
         localStorage.setItem(STORAGE_KEYS.STREAMING, state.streaming.toString());
         localStorage.setItem(STORAGE_KEYS.SYSTEM_PROMPT, state.systemPrompt);
+        localStorage.setItem(STORAGE_KEYS.WEB_SEARCH, state.webSearchEnabled.toString());
         localStorage.setItem(STORAGE_KEYS.THEME, state.theme);
         localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(state.messages));
         localStorage.setItem(STORAGE_KEYS.SESSION_STATS, JSON.stringify(state.sessionStats));
       } catch (err) {
         console.warn('LocalStorage save issue:', err);
+      }
+    }
+
+    function updateWebSearchUI() {
+      const pill = document.getElementById('webSearchToggleBtn');
+      const toggle = document.getElementById('sidebarWebSearchToggle');
+      if (pill) {
+        if (state.webSearchEnabled) pill.classList.add('active');
+        else pill.classList.remove('active');
+      }
+      if (toggle) {
+        toggle.checked = !!state.webSearchEnabled;
       }
     }
 
@@ -1727,8 +1893,8 @@
           throw new Error('Invalid models response structure');
         }
 
-        // Filter out non-chat models (whisper, tts, guard, playai, safeguard)
-        const excludedKeywords = ['whisper', 'tts', 'guard', 'playai', 'safeguard'];
+        // Filter out non-chat models (whisper, tts, guard, playai, safeguard, orpheus)
+        const excludedKeywords = ['whisper', 'tts', 'guard', 'playai', 'safeguard', 'orpheus'];
         const chatModels = data.data.filter(m => {
           const id = m.id.toLowerCase();
           return !excludedKeywords.some(kw => id.includes(kw));
@@ -1851,6 +2017,33 @@
           }
         }
 
+        // Render web search sources if present
+        let sourcesHtml = '';
+        if (msg.sources && Array.isArray(msg.sources) && msg.sources.length > 0) {
+          sourcesHtml = `
+            <div class="sources-strip">
+              <span class="sources-label">Sources:</span>
+              ${msg.sources.map((s, sIdx) => `
+                <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer" class="source-chip" title="${escapeHtml(s.title + ' — ' + s.snippet)}">
+                  <span class="source-num">${sIdx + 1}</span>
+                  <span class="source-title">${escapeHtml(s.title)}</span>
+                </a>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        // Render reasoning tokens expandable box if present
+        let reasoningHtml = '';
+        if (msg.reasoning && msg.reasoning.trim().length > 0) {
+          reasoningHtml = `
+            <details class="reasoning-box">
+              <summary class="reasoning-summary">💭 Thought process (${msg.reasoning.length} chars)</summary>
+              <div class="reasoning-content">${escapeHtml(msg.reasoning)}</div>
+            </details>
+          `;
+        }
+
         row.innerHTML = `
           <div class="message-header">
             <div class="sender-meta">
@@ -1860,9 +2053,14 @@
             <div class="message-actions">
               <button class="action-btn copy-msg-btn" data-content="${escapeHtml(msg.content)}" title="Copy message">Copy</button>
               ${regenBtn}
+              <button class="action-btn delete-msg-btn" data-index="${idx}" title="Delete message">🗑️</button>
             </div>
           </div>
-          <div class="message-bubble markdown-body">${isUser ? escapeHtml(msg.content) : renderMarkdown(msg.content)}</div>
+          <div class="message-bubble markdown-body">
+            ${reasoningHtml}
+            ${isUser ? escapeHtml(msg.content) : renderMarkdown(msg.content)}
+            ${sourcesHtml}
+          </div>
           <div class="message-footer">
             ${limitWarningHtml}
             ${statsHtml}
@@ -1894,6 +2092,18 @@
       container.querySelectorAll('.regen-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           regenerateLastAssistantResponse();
+        });
+      });
+
+      // Attach delete message handlers
+      container.querySelectorAll('.delete-msg-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(btn.getAttribute('data-index'), 10);
+          if (!isNaN(idx) && idx >= 0 && idx < state.messages.length) {
+            state.messages.splice(idx, 1);
+            saveStateToStorage();
+            renderMessages();
+          }
         });
       });
 
@@ -1941,19 +2151,31 @@
         });
       }
 
+      // Filter out empty messages so prompt structure is never malformed
       state.messages.forEach(m => {
-        payloadMessages.push({
-          role: m.role,
-          content: m.content
-        });
+        if (m.content && m.content.trim().length > 0 && !m.content.startsWith('*[Empty response')) {
+          payloadMessages.push({
+            role: m.role,
+            content: m.content.trim()
+          });
+        }
       });
+
+      // Merge any consecutive same-role messages so the chat history is strictly alternating
+      const sanitized = [];
+      for (const msg of payloadMessages) {
+        if (sanitized.length > 0 && sanitized[sanitized.length - 1].role === msg.role) {
+          sanitized[sanitized.length - 1].content += '\n\n' + msg.content;
+        } else {
+          sanitized.push({ ...msg });
+        }
+      }
 
       const payload = {
         model: state.selectedModelId,
-        messages: payloadMessages.length > 0 ? payloadMessages : [{ role: 'user', content: 'Hello!' }],
+        messages: sanitized.length > 0 ? sanitized : [{ role: 'user', content: 'Hello!' }],
         temperature: state.temperature,
         max_tokens: state.maxTokens,
-        max_completion_tokens: state.maxTokens,
         stream: state.streaming
       };
 
@@ -2016,13 +2238,14 @@
       stopBtn.style.display = 'inline-flex';
 
       const currentModelId = state.selectedModelId;
-      const requestPayload = buildCurrentPayload();
 
       // Prepare assistant placeholder message in state
       const assistantMsg = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: '',
+        reasoning: '',
+        sources: [],
         model: currentModelId,
         stats: {
           time: null,
@@ -2042,6 +2265,41 @@
       const chatContainer = document.getElementById('chatMessages');
       const lastRow = chatContainer.lastElementChild;
       const bubbleEl = lastRow ? lastRow.querySelector('.message-bubble') : null;
+
+      // 1. Web Search Execution (if enabled)
+      let searchContext = '';
+      if (state.webSearchEnabled) {
+        const lastUserMsg = state.messages.filter(m => m.role === 'user').slice(-1)[0]?.content || '';
+        if (lastUserMsg) {
+          if (bubbleEl) {
+            bubbleEl.innerHTML = `<div class="search-progress"><span>🌐</span> Searching the web for: <em>${escapeHtml(lastUserMsg.slice(0, 60))}...</em></div><span class="streaming-cursor"></span>`;
+          }
+          try {
+            const searchEndpoint = IS_LOCAL_FILE ? `https://html.duckduckgo.com/html/?q=${encodeURIComponent(lastUserMsg)}` : `/api/search?q=${encodeURIComponent(lastUserMsg)}`;
+            const searchRes = await fetch(searchEndpoint, {
+              signal: state.abortController.signal
+            });
+            if (searchRes.ok) {
+              const searchData = await searchRes.json();
+              if (searchData.results && searchData.results.length > 0) {
+                assistantMsg.sources = searchData.results;
+                searchContext = `[Real-Time Web Search Results for "${lastUserMsg}"]:\n` +
+                  searchData.results.map((r, i) => `[${i + 1}] "${r.title}" (${r.url})\n${r.snippet}`).join('\n\n') +
+                  `\n\nInstruction: Use the above fresh web search results to provide an up-to-date and accurate answer. Cite references or source numbers where relevant.`;
+              }
+            }
+          } catch (sErr) {
+            console.warn('Web search error:', sErr);
+          }
+        }
+      }
+
+      // Build payload and inject search context if available
+      const requestPayload = buildCurrentPayload();
+      if (searchContext && requestPayload.messages.length > 0) {
+        const lastUserTurn = requestPayload.messages[requestPayload.messages.length - 1];
+        lastUserTurn.content += `\n\n---\n${searchContext}`;
+      }
 
       const startTime = performance.now();
       let firstTokenTime = null;
@@ -2160,17 +2418,27 @@
                         firstTokenTime = performance.now();
                       }
                     }
+
+                    if (choice.delta.reasoning) {
+                      assistantMsg.reasoning = (assistantMsg.reasoning || '') + choice.delta.reasoning;
+                    }
                     if (choice.delta.content) {
                       assistantMsg.content += choice.delta.content;
-                      if (bubbleEl) {
-                        bubbleEl.innerHTML = renderMarkdown(assistantMsg.content) + '<span class="streaming-cursor"></span>';
-                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+
+                    if (bubbleEl) {
+                      let liveHtml = '';
+                      if (assistantMsg.reasoning && !assistantMsg.content) {
+                        liveHtml = `<div style="color:var(--text-muted);font-style:italic;margin-bottom:6px;">💭 Thinking (${assistantMsg.reasoning.length} chars)...</div><span class="streaming-cursor"></span>`;
+                      } else {
+                        let reasoningBlock = '';
+                        if (assistantMsg.reasoning) {
+                          reasoningBlock = `<details class="reasoning-box"><summary class="reasoning-summary">💭 Thought process</summary><div class="reasoning-content">${escapeHtml(assistantMsg.reasoning)}</div></details>`;
+                        }
+                        liveHtml = reasoningBlock + renderMarkdown(assistantMsg.content) + '<span class="streaming-cursor"></span>';
                       }
-                    } else if (choice.delta.reasoning && !assistantMsg.content) {
-                      if (bubbleEl) {
-                        bubbleEl.innerHTML = '<span style="color:var(--text-muted);font-style:italic;">Thinking...</span><span class="streaming-cursor"></span>';
-                        chatContainer.scrollTop = chatContainer.scrollHeight;
-                      }
+                      bubbleEl.innerHTML = liveHtml;
+                      chatContainer.scrollTop = chatContainer.scrollHeight;
                     }
                   }
 
@@ -2189,6 +2457,9 @@
           firstTokenTime = performance.now();
           if (json.choices && json.choices.length > 0) {
             assistantMsg.content = json.choices[0].message?.content || '';
+            if (json.choices[0].message?.reasoning) {
+              assistantMsg.reasoning = json.choices[0].message.reasoning;
+            }
             finalFinishReason = json.choices[0].finish_reason;
           }
           if (json.usage) {
@@ -2228,6 +2499,16 @@
         state.sessionStats.totalTokens += totalTokens;
         state.lastResponseStats = assistantMsg.stats;
 
+        // Check if output was empty (e.g. reasoning model exhausted tokens before writing final answer)
+        if (!assistantMsg.content || assistantMsg.content.trim().length === 0) {
+          if (assistantMsg.reasoning && assistantMsg.reasoning.trim().length > 0) {
+            assistantMsg.content = '*[The model completed its thought process but reached its token limit before writing the final response. Please increase Max Tokens in the sidebar.]*';
+          } else {
+            assistantMsg.content = '*[Empty response returned by model]*';
+          }
+          showToast('Model produced no text output. Try increasing Max Tokens.', 'warning');
+        }
+
         // Token limit hit warning
         if (finalFinishReason === 'length') {
           showToast('Token limit hit', 'warning');
@@ -2243,10 +2524,20 @@
         } else {
           console.error('Groq API Error:', err);
           showToast(err.message, 'error', 6000);
-          if (assistantMsg.content.length === 0) {
+          if (assistantMsg.content.length === 0 && (!assistantMsg.reasoning || assistantMsg.reasoning.length === 0)) {
             // Remove empty failed message
             const idx = state.messages.indexOf(assistantMsg);
             if (idx !== -1) state.messages.splice(idx, 1);
+          }
+
+          // Automatic 404 / 400 prune & recovery: if model does not exist or requires unaccepted terms
+          if (err.message && (err.message.includes('404') || err.message.includes('requires terms') || err.message.includes('does not exist'))) {
+            state.availableModels = state.availableModels.filter(m => m.id !== currentModelId);
+            const fallback = state.availableModels.find(m => m.id === 'openai/gpt-oss-120b') || state.availableModels[0];
+            state.selectedModelId = fallback ? fallback.id : 'openai/gpt-oss-120b';
+            populateModelDropdown();
+            saveStateToStorage();
+            showToast(`Model "${currentModelId}" is not accessible on your Groq tier and has been removed. Switched to ${state.selectedModelId}.`, 'warning', 7000);
           }
         }
       } finally {
@@ -2517,6 +2808,32 @@
 
       menuToggleBtn.addEventListener('click', () => toggleMobileDrawer(true));
       sidebarBackdrop.addEventListener('click', () => toggleMobileDrawer(false));
+
+      // Web Search Toggles
+      const webSearchBtn = document.getElementById('webSearchToggleBtn');
+      const sidebarWebSearch = document.getElementById('sidebarWebSearchToggle');
+
+      function toggleWebSearch() {
+        state.webSearchEnabled = !state.webSearchEnabled;
+        updateWebSearchUI();
+        saveStateToStorage();
+        showToast(
+          state.webSearchEnabled ? '🌐 Web search active: models will search DuckDuckGo for live facts' : 'Web search turned off',
+          state.webSearchEnabled ? 'success' : 'info',
+          3000
+        );
+      }
+
+      if (webSearchBtn) {
+        webSearchBtn.addEventListener('click', toggleWebSearch);
+      }
+      if (sidebarWebSearch) {
+        sidebarWebSearch.addEventListener('change', () => {
+          state.webSearchEnabled = sidebarWebSearch.checked;
+          updateWebSearchUI();
+          saveStateToStorage();
+        });
+      }
     }
 
     // App Startup
@@ -2524,6 +2841,7 @@
       loadStateFromStorage();
       populateModelDropdown();
       initializeEventListeners();
+      updateWebSearchUI();
       renderMessages();
       updateSidebarStats();
       updateSendButtonState();
